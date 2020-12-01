@@ -1,0 +1,13 @@
+{
+  "include": ["node_modules/preact/dist/preact.d.ts", "saber.tsx"],
+  "compilerOptions": {
+    "target": "es5",
+    "module": "none",
+    "lib": ["esnext", "dom"],
+    "jsx": "react",
+    "jsxFactory": "preact.h",
+    "strict": true,
+    "sourceMap": true,
+    "esModuleInterop": true
+  }
+}

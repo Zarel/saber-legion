@@ -1,0 +1,22 @@
+{
+	"dir": "ltr",
+	"lang": "en",
+	"name": "The Saber Legion Score/Time",
+	"scope": "/saber/",
+	"display": "standalone",
+	"start_url": "https://guangcongluo.com/saber/",
+	"short_name": "TSL Score",
+	"theme_color": "black",
+	"description": "",
+	"orientation": "portrait",
+	"background_color": "#EEEEEE",
+	"icons": [{
+		"src": "https://guangcongluo.com/saber/saber-icon.png",
+		"sizes": "512x512",
+		"type": "image/png"
+	}, {
+		"src": "https://guangcongluo.com/saber/saber-icon-192.png",
+		"sizes": "192x192",
+		"type": "image/png"
+	}]
+}
