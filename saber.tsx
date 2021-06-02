@@ -22,10 +22,10 @@ interface MainState {
 
 class TimeLeft extends preact.Component<{endTime: number, pausedTimeLeft?: number}> {
 	timer: number | null = null;
-	componentDidMount() {
+	override componentDidMount() {
 		this.timer = requestAnimationFrame(this.manualUpdate);
 	}
-	componentWillUnmount() {
+	override componentWillUnmount() {
 		if (this.timer !== null) {
 			clearInterval(this.timer);
 			this.timer = null;
@@ -39,12 +39,12 @@ class TimeLeft extends preact.Component<{endTime: number, pausedTimeLeft?: numbe
 		}
 		this.timer = requestAnimationFrame(this.manualUpdate);
 	}
-	componentDidUpdate() {
+	override componentDidUpdate() {
 		if (this.timer === null && !this.props.pausedTimeLeft) {
 			this.timer = requestAnimationFrame(this.manualUpdate);
 		}
 	}
-	render() {
+	override render() {
 		// console.log("ptl:" + this.props.pausedTimeLeft);
 		let msLeft = this.props.pausedTimeLeft || (this.props.endTime - Date.now());
 		if (msLeft <= 0) return <strong>TIME UP</strong>;
@@ -76,7 +76,7 @@ class TimeEditor extends preact.Component<{setState: (state: Partial<MainState>)
 			menuOpen: null,
 		});
 	};
-	render() {
+	override render() {
 		return <form onSubmit={this.changeTime}>
 			<p>Time for the round?</p>
 			<input type="number" class="textbox" id="time" autofocus />{"min "}
@@ -156,7 +156,7 @@ class RoundEditor extends preact.Component<{setState: (state: Partial<MainState>
 			menuOpen: null,
 		});
 	};
-	render() {
+	override render() {
 		const S = this.props.state;
 		const scored = !!(S.score1 || S.score2 || S.simul);
 		const started = !!S.startTime;
@@ -201,14 +201,14 @@ class Main extends preact.Component<{}, MainState> {
 		menuOpen: null,
 	};
 	simpleMenu = false;
-	componentDidMount() {
+	override componentDidMount() {
 		this.windowDidUpdateStorage();
 		window.addEventListener('storage', () => {
 			this.windowDidUpdateStorage();
 		});
 		window.addEventListener('keydown', this.keyDown);
 	}
-	componentWillUpdate(nextProps: any, nextState: any) {
+	override componentWillUpdate(nextProps: any, nextState: any) {
 		const nextStateString = JSON.stringify(nextState);
 		if (nextStateString === JSON.stringify(this.state)) return;
 		localStorage.setItem('saber_state', nextStateString);
@@ -218,7 +218,7 @@ class Main extends preact.Component<{}, MainState> {
 		if (!nextStateString || nextStateString === JSON.stringify(this.state)) return;
 		this.setState(JSON.parse(nextStateString));
 	}
-	componentDidUpdate(prevProps: any, prevState: any) {
+	override componentDidUpdate(prevProps: any, prevState: any) {
 		if (this.state.menuOpen === 'time' && prevState.menuOpen !== 'time') {
 			const timeElement = document.getElementById('time');
 			timeElement && timeElement.focus();
@@ -227,7 +227,7 @@ class Main extends preact.Component<{}, MainState> {
 	setStateFromChild = (state: Partial<MainState>) => {
 		this.setState(state as any);
 	};
-	render() {
+	override render() {
 		const S = this.state;
 		const menuOpen = this.simpleMenu ? null : S.menuOpen;
 		return <div class="main" style={this.simpleMenu ? {zoom: 2} : null}>
