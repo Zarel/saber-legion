@@ -171,7 +171,11 @@ class TimeLeft extends preact.Component {
 	}
 	override render() {
 		let msLeft = Saber.timeLeft();
-		if (msLeft <= 0) return <strong>TIME UP</strong>;
+		if (msLeft <= 0) {
+			const winner = Saber.winner();
+			if (!winner) return <strong>TIE</strong>;
+			return <span class="winner">WINNER:<strong>{winner.name || (winner == Saber.p1 ? 'Left' : 'Right')}</strong></span>;
+		}
 		let cs = `${Math.floor(msLeft / 10) % 100}`.padStart(2, '0');
 		let s = `${Math.floor(msLeft / 1000) % 60}`.padStart(2, '0');
 		let m = Math.floor(msLeft / (1000 * 60));
