@@ -339,12 +339,12 @@ class Main extends preact.Component {
 			this.forceUpdate();
 		});
 	}
-	override render() {
+	renderMain() {
 		const menuOpen = Saber.ui.menuOpen;
 		const timeUp = !Saber.timeLeft();
 		return <div class="main" style={Saber.ui.bigDisplayMode ? {zoom: 2} : null}>
 			{Saber.ui.bigDisplayMode ? null : <img src="banner.jpg" alt="The Saber Legion" style={{width: "100%"}} />}
-			<div style={{textAlign: "right"}}>
+			<div class="rounds">
 				<button class="round" onClick={this.editRound}><strong>Round {Saber.roundNum}</strong></button>
 				{!Saber.ui.bigDisplayMode && <button class="button rleft" onClick={this.editTime}>Time</button>}
 				{!Saber.ui.bigDisplayMode && <button class="button rright" onClick={this.editRound}>Edit</button>}
@@ -359,7 +359,7 @@ class Main extends preact.Component {
 				<TimeLeft />
 			</button>
 
-			<table>
+			<table class="layout">
 				<tr><td width="34%">
 					<label class="p1 name">{Saber.p1.name}</label>
 				</td><td>
@@ -369,7 +369,7 @@ class Main extends preact.Component {
 				</td></tr>
 			</table>
 
-			<table>
+			<table class="layout">
 				<tr><td width="34%">
 					<button class="score p1" onClick={this.plusScore1} onContextMenu={this.minusScore1}>
 						Score:<br />
@@ -438,6 +438,48 @@ class Main extends preact.Component {
 
 			{Saber.ui.bigDisplayMode ? <div class="bottombanner"><div><img src="banner.jpg" alt="The Saber Legion" style={{width: "100%"}} /></div></div> : null}
 		</div>;
+	}
+	override render() {
+		return <div>
+			{this.renderMain()}
+			{!Saber.ui.bigDisplayMode && <div class="help">
+				<p>
+					Alternate controls:
+				</p>
+				<table class="table">
+					<tr>
+						<th> </th><th>Keyboard</th><th>Mouse</th>
+					</tr><tr>
+						<td>+1 score to left player</td><td><kbd>Q</kbd></td><td>Click score</td>
+					</tr><tr>
+						<td>&minus;1 score to left player</td><td><kbd>A</kbd></td><td>Right-click score</td>
+					</tr><tr>
+						<td>+1 simuls</td><td><kbd>W</kbd></td><td>Click simuls</td>
+					</tr><tr>
+						<td>&minus;1 simuls</td><td><kbd>S</kbd></td><td>Right-click simuls</td>
+					</tr><tr>
+						<td>+1 score to right player</td><td><kbd>E</kbd></td><td>Click score</td>
+					</tr><tr>
+						<td>&minus;1 score to right player</td><td><kbd>D</kbd></td><td>Right-click score</td>
+					</tr><tr>
+						<td>Big screen mode</td><td><kbd>F</kbd></td><td> </td>
+					</tr><tr>
+						<td>Next round/Tiebreaker</td><td><kbd>N</kbd></td><td></td>
+					</tr><tr>
+						<td>Start/Pause</td><td><kbd>Spacebar</kbd></td><td></td>
+					</tr><tr>
+						<td>Round settings</td><td><kbd></kbd></td><td>Click round number</td>
+					</tr><tr>
+						<td>Time settings</td><td><kbd></kbd></td><td>Click time</td>
+					</tr>
+				</table>
+				<p>
+					Big screen mode hides all controls, for showing time and scores to spectators.
+				</p><p>
+					If you have two screens, you can make two browser windows (they'll be synchronized), put one window in big screen mode, and use the controls on the other window to control it.
+				</p>
+			</div>}
+		</div>
 	}
 	keyDown = (e: KeyboardEvent) => {
 		// if (['INPUT', 'BUTTON'].includes((e.target as HTMLElement).tagName)) return;
