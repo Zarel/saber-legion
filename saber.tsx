@@ -276,14 +276,18 @@ class RoundEditor extends preact.Component {
 	};
 	subtitle1 = `${Saber.p1.subtitle}`;
 	changeSubtitle1 = (e: Event) => {
-		this.subtitle1 = (e.target as HTMLInputElement).value;
+		const textbox = e.target as HTMLTextAreaElement;
+		this.subtitle1 = textbox.value;
 		Saber.p1.subtitle = this.subtitle1;
+		this.autosize(textbox);
 		Saber.update();
 	};
 	subtitle2 = `${Saber.p2.subtitle}`;
 	changeSubtitle2 = (e: Event) => {
-		this.subtitle2 = (e.target as HTMLInputElement).value;
+		const textbox = e.target as HTMLTextAreaElement;
+		this.subtitle2 = textbox.value;
 		Saber.p2.subtitle = this.subtitle2;
+		this.autosize(textbox);
 		Saber.update();
 	};
 	changeColor1 = (e: Event) => {
@@ -333,6 +337,17 @@ class RoundEditor extends preact.Component {
 	reset = () => {
 		Saber.resetRound();
 	};
+	autosize(textbox: HTMLTextAreaElement) {
+		textbox.style.height = `12px`;
+		const newHeight = Math.min(Math.max(textbox.scrollHeight - 2, 16), 600);
+		textbox.style.height = `${newHeight}px`;
+	}
+	override componentDidMount() {
+		const results = this.base!.querySelectorAll('textarea');
+		for (let i = 0; i < results.length; i++) {
+			this.autosize(results[i]);
+		}
+	}
 	override render() {
 		const scored = !!(Saber.p1.score || Saber.p2.score || Saber.simul);
 		const started = Saber.startTime || Saber.currentDuration !== Saber.settings.duration;
@@ -344,7 +359,7 @@ class RoundEditor extends preact.Component {
 				<div><label>Round number: <input type="number" class="textbox" value={Saber.roundNum} onChange={this.changeRound} onInput={this.changeRound} /></label></div>
 				<table><tr><td>
 					<div><label>Left name: <br /><input type="text" class="textbox" value={Saber.p1.name} onChange={this.changeName1} onInput={this.changeName1} /></label></div>
-					<div><label>Subtitle: <br /><input type="text" class="textbox" value={Saber.p1.subtitle} onChange={this.changeSubtitle1} onInput={this.changeSubtitle1} /></label></div>
+					<div><label>Subtitle: <br /><textarea class="textbox" value={Saber.p1.subtitle} onChange={this.changeSubtitle1} onInput={this.changeSubtitle1} /></label></div>
 					<div><label>Color: <br /><select class="textbox" value={Saber.p1.color} onChange={this.changeColor1}>
 						<option value="blue">🟦 Blue</option>
 						<option value="green">🟩 Green</option>
@@ -357,7 +372,7 @@ class RoundEditor extends preact.Component {
 					<div><label>Match point: <br /><input type="number" class="textbox" value={Saber.p1.match} onChange={this.changeMatch1} onInput={this.changeMatch1} /></label></div>
 				</td><td>
 					<div><label>Right name: <br /><input type="text" class="textbox" value={Saber.p2.name} onChange={this.changeName2} onInput={this.changeName2} /></label></div>
-					<div><label>Subtitle: <br /><input type="text" class="textbox" value={Saber.p2.subtitle} onChange={this.changeSubtitle2} onInput={this.changeSubtitle2} /></label></div>
+					<div><label>Subtitle: <br /><textarea class="textbox" value={Saber.p2.subtitle} onChange={this.changeSubtitle2} onInput={this.changeSubtitle2} /></label></div>
 					<div><label>Color: <br /><select class="textbox" value={Saber.p2.color} onChange={this.changeColor2}>
 						<option value="blue">🟦 Blue</option>
 						<option value="green">🟩 Green</option>
@@ -410,13 +425,15 @@ class Main extends preact.Component {
 			<table class="layout">
 				<tr><td width="34%">
 					<label class={`name ${Saber.p1.color}`}>
-						{Saber.p1.name}<small>{Saber.p1.subtitle}</small>
+						{Saber.p1.name}
+						{Saber.p1.subtitle.split('\n').map(line => <small>{line}</small>)}
 					</label>
 				</td><td>
 					<label>&nbsp;</label>
 				</td><td width="34%">
 					<label class={`name ${Saber.p2.color}`}>
-						{Saber.p2.name}<small>{Saber.p2.subtitle}</small>
+						{Saber.p2.name}
+						{Saber.p2.subtitle.split('\n').map(line => <small>{line}</small>)}
 					</label>
 				</td></tr>
 			</table>
@@ -535,7 +552,7 @@ class Main extends preact.Component {
 	}
 	keyDown = (e: KeyboardEvent) => {
 		// if (['INPUT', 'BUTTON'].includes((e.target as HTMLElement).tagName)) return;
-		if (['INPUT'].includes((e.target as HTMLElement).tagName)) return;
+		if (['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement).tagName)) return;
 		if (e.keyCode === 70) { // F
 			e.preventDefault();
 			Saber.ui.bigDisplayMode = !Saber.ui.bigDisplayMode;

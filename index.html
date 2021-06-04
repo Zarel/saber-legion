@@ -149,7 +149,7 @@ td {
 	margin: 10px auto;
 	width: 80px;
 	height: auto;
-	font-size: 18pt;
+	font: 18pt sans-serif;
 	text-align: center;
 
 	border: 1px solid #AAAAAA;
@@ -166,6 +166,11 @@ select.textbox {
 
 .textbox[type=text] {
 	width: 150px;
+}
+textarea.textbox {
+	width: 150px;
+	resize: none;
+	font-size: 14pt;
 }
 .bigtextbox {
 	margin: 10px auto 6px;
@@ -286,6 +291,10 @@ label.name small {
 .help {
 	max-width: 600px;
 	margin: auto;
+	padding: 1px 4px;
+}
+.help p {
+	padding: 0 4px;
 }
 	</style>
 </head><body>
