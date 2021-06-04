@@ -1,26 +1,148 @@
 
-const SIMUL_CUTOFF = 3;
+class SaberState {
+	roundNum = "1";
+	p1 = {
+		match: 0,
+		score: 0,
+		name: "Blue",
+	};
+	p2 = {
+		match: 0,
+		score: 0,
+		name: "Red",
+	};
+	simul = 0;
 
-interface MainState {
-	roundNum: string;
-	match1: number;
-	match2: number;
-	maxMatches: number;
-	score1: number;
-	score2: number;
-	name1: string;
-	name2: string;
-	simul: number;
-	startTime: number;
-	pauseTime: number;
-	pauseOffset: number;
-	pauseAfterScoring: boolean;
-	duration: number;
-	roundDuration: number;
-	menuOpen: 'time' | 'round' | null;
-}
+	suddenDeath = false;
+	/** Time left as of the last time we resumed */
+	currentDuration = 5 * 60 * 1000;
+	/** null = paused, otherwise: the last time we hit start/resume */
+	startTime: number | null = null;
 
-class TimeLeft extends preact.Component<{endTime: number, pausedTimeLeft?: number}> {
+	settings = {
+		duration: 5 * 60 * 1000,
+		suddenDeath: false,
+		tiebreakerDuration: 30 * 1000,
+		pauseAfterScoring: false,
+		maxMatches: 0,
+		simulCutoff: 3,
+	};
+
+	ui = {
+		menuOpen: null as 'time' | 'round' | null,
+		bigDisplayMode: false,
+	};
+
+	subscription: (() => void) | null = null;
+
+	constructor() {
+		this.windowDidUpdateStorage();
+		window.addEventListener('storage', () => {
+			this.windowDidUpdateStorage();
+		});
+	}
+	windowDidUpdateStorage() {
+		const nextStateString = localStorage.getItem('saber_state');
+		if (!nextStateString || nextStateString === JSON.stringify(this.toJSON())) return;
+		this.deserialize(JSON.parse(nextStateString));
+	}
+
+	timeLeft() {
+		const elapsedTime = this.startTime ? (Date.now() - this.startTime) : 0;
+		return Math.max(this.currentDuration - elapsedTime, 0);
+	}
+	pause() {
+		if (!this.startTime) return false;
+		this.currentDuration = this.timeLeft();
+		this.startTime = null;
+		this.update();
+		return true;
+	}
+	resume() {
+		if (this.startTime) return;
+		this.startTime = Date.now();
+		this.update();
+	}
+	subscribe(sub: Exclude<SaberState['subscription'], null>) {
+		this.subscription = sub;
+	}
+	scored() {
+		if (Saber.suddenDeath && this.p1.score !== this.p2.score) {
+			this.currentDuration = 0;
+		}
+		(this.settings.pauseAfterScoring && this.pause()) || this.update();
+	}
+	update() {
+		this.save();
+		this.subscription?.();
+	}
+	winner() {
+		if (this.p1.score > this.p2.score) return this.p1;
+		if (this.p2.score > this.p1.score) return this.p2;
+		return null;
+	}
+	nextRound() {
+		if (this.timeLeft()) return;
+
+		const winner = this.winner();
+
+		if (winner || this.suddenDeath) {
+			if (winner) winner.match++;
+			const nextRound = parseInt(this.roundNum) + 1;
+			if (nextRound > 0) this.roundNum = `${nextRound}`;
+			this.resetRound();
+		} else {
+			this.currentDuration = this.settings.tiebreakerDuration;
+			this.suddenDeath = true;
+			this.startTime = 0;
+			this.update();
+		}
+	}
+	resetRound() {
+		this.p1.score = 0;
+		this.p2.score = 0;
+		this.simul = 0;
+		this.currentDuration = this.settings.duration;
+		this.suddenDeath = false;
+		this.startTime = 0;
+		this.update();
+	}
+
+	toJSON() {
+		return {
+			roundNum: this.roundNum,
+			p1: this.p1,
+			p2: this.p2,
+			simul: this.simul,
+			currentDuration: this.currentDuration,
+			startTime: this.startTime,
+			suddenDeath: this.suddenDeath,
+			settings: this.settings,
+		};
+	}
+	save() {
+		localStorage.setItem('saber_state', JSON.stringify(this.toJSON()));
+	}
+	deserialize(data: MainState) {
+		if ('score1' in data) {
+			// old format
+			return;
+		}
+		this.roundNum = data.roundNum;
+		this.p1 = data.p1;
+		this.p2 = data.p2;
+		this.simul = data.simul;
+		this.currentDuration = data.currentDuration;
+		this.startTime = data.startTime;
+		this.suddenDeath = data.suddenDeath;
+		Object.assign(this.settings, data.settings);
+		this.update();
+	}
+};
+const Saber = new SaberState();
+type MainState = ReturnType<SaberState['toJSON']>;
+
+class TimeLeft extends preact.Component {
 	timer: number | null = null;
 	override componentDidMount() {
 		this.timer = requestAnimationFrame(this.manualUpdate);
@@ -33,20 +155,22 @@ class TimeLeft extends preact.Component<{endTime: number, pausedTimeLeft?: numbe
 	}
 	manualUpdate = () => {
 		this.forceUpdate();
-		if (this.props.pausedTimeLeft) {
-			this.timer = null;
-			return;
+		this.timer = null;
+		if (Saber.startTime) {
+			if (!Saber.timeLeft()) {
+				Saber.update();
+				return;
+			}
+			this.timer = requestAnimationFrame(this.manualUpdate);
 		}
-		this.timer = requestAnimationFrame(this.manualUpdate);
 	}
 	override componentDidUpdate() {
-		if (this.timer === null && !this.props.pausedTimeLeft) {
+		if (this.timer === null && Saber.startTime) {
 			this.timer = requestAnimationFrame(this.manualUpdate);
 		}
 	}
 	override render() {
-		// console.log("ptl:" + this.props.pausedTimeLeft);
-		let msLeft = this.props.pausedTimeLeft || (this.props.endTime - Date.now());
+		let msLeft = Saber.timeLeft();
 		if (msLeft <= 0) return <strong>TIME UP</strong>;
 		let cs = `${Math.floor(msLeft / 10) % 100}`.padStart(2, '0');
 		let s = `${Math.floor(msLeft / 1000) % 60}`.padStart(2, '0');
@@ -55,125 +179,152 @@ class TimeLeft extends preact.Component<{endTime: number, pausedTimeLeft?: numbe
 	}
 }
 
-class TimeEditor extends preact.Component<{setState: (state: Partial<MainState>) => void, state: MainState}> {
+class TimeEditor extends preact.Component {
+	duration = this.textTime(Saber.timeLeft());
+	settingDuration = this.textTime(Saber.settings.duration);
+	textTime(ms: number) {
+		let s = Math.trunc(ms / 1000);
+		ms = ms % 1000;
+		let m = Math.trunc(s / 60);
+		s = s % 60;
+
+		const sDisplay = `${s}`.padStart(2, '0');
+		const msDisplay = ms ? `.${ms}`.padStart(3, '0') : ``;
+		return `${m}:${sDisplay}${msDisplay}`;
+	}
+	parseTextTime(str: string) {
+		const result = /^(?:([0-9]+)\:)?([0-9]+)(?:\.([0-9]+))?$/.exec(str.trim());
+		if (!result) return null;
+		const [, minStr, secStr, msStr] = result;
+		const minutes = parseInt(minStr || '0', 10);
+		const seconds = parseInt(secStr, 10);
+		const ms = parseInt((msStr || '0').slice(0, 3).padEnd(3, '0'), 10);
+		return (minutes * 60 + seconds) * 1000 + ms;
+	}
 	changeTime = (e: Event) => {
 		e.preventDefault();
-		let minutes = Number((document.getElementById('time') as HTMLInputElement).value) || 0;
-		let seconds = 60 * minutes + (Number((document.getElementById('timesec') as HTMLInputElement).value) || 0);
-		if (!seconds) {
-			this.setState({
-				menuOpen: null,
-			});
+		const durationText = (document.getElementById('time') as HTMLInputElement).value;
+		const settingDurationText = (document.getElementById('timeall') as HTMLInputElement).value;
+		const duration = this.parseTextTime(durationText);
+		const settingDuration = this.parseTextTime(settingDurationText);
+		if (!duration && duration !== 0) {
+			alert(`Time "${durationText}" must be in the format:\n[minutes]:[seconds].[milliseconds]\n(minutes/milliseconds optional)`);
 			return;
 		}
-		this.props.setState({
-			duration: seconds * 1000,
-			menuOpen: null,
-		});
+		if (!settingDuration) {
+			alert(`Time "${settingDurationText}" must be nonzero and in the format:\n[minutes]:[seconds].[milliseconds]\n(minutes/milliseconds optional)`);
+			return;
+		}
+		Saber.currentDuration = duration;
+		Saber.suddenDeath = !!(document.getElementById('suddendeath') as HTMLInputElement).checked;
+		Saber.settings.duration = settingDuration;
+		Saber.settings.suddenDeath = !!(document.getElementById('suddendeathall') as HTMLInputElement).checked;
+		this.close();
+	};
+	inputTime = (e: Event) => {
+		this.duration = (document.getElementById('time') as HTMLInputElement).value;
+		this.settingDuration = (document.getElementById('timeall') as HTMLInputElement).value;
 	};
 	close = () => {
-		this.props.setState({
-			menuOpen: null,
-		});
+		Saber.ui.menuOpen = null;
+		Saber.update();
 	};
 	override render() {
 		return <form onSubmit={this.changeTime}>
-			<p>Time for the round?</p>
-			<input type="number" class="textbox" id="time" autofocus />{"min "}
-			<input type="number" class="textbox" id="timesec" placeholder="00" />sec
-			<button class="button bigbutton" type="submit"><strong>Set time</strong></button><br />
-			<button class="button" type="button" onClick={this.close}>Cancel</button>
+			<p>Time left for this round?</p>
+			<input type="text" class="textbox" id="time" value={this.duration} onInput={this.inputTime} />
+			<div><label><input type="checkbox" id="suddendeath" checked={Saber.suddenDeath} /> Sudden death</label></div>
+			<p>Time left for future rounds?</p>
+			<input type="text" class="textbox" id="timeall" value={this.settingDuration} onInput={this.inputTime} />
+			<div><label><input type="checkbox" id="suddendeathall" checked={Saber.settings.suddenDeath} /> Sudden death</label></div>
+			<p>
+				<button class="button bigbutton" type="submit"><strong>Set time</strong></button><br />
+				<button class="button" type="button" onClick={this.close}>Cancel</button>
+			</p>
 		</form>;
 	}
 }
 
-class RoundEditor extends preact.Component<{setState: (state: Partial<MainState>) => void, state: MainState}> {
-	changeTime = (e: Event) => {
-		e.preventDefault();
-		let minutes = Number((document.getElementById('time') as HTMLInputElement).value) || 0;
-		let seconds = 60 * minutes + (Number((document.getElementById('timesec') as HTMLInputElement).value) || 0);
-		if (!seconds) {
-			this.setState({
-				menuOpen: null,
-			});
-			return;
-		}
-		this.props.setState({
-			duration: seconds * 1000,
-			menuOpen: null,
-		});
-	};
+class RoundEditor extends preact.Component {
 	close = () => {
-		this.props.setState({
-			menuOpen: null,
-		});
+		Saber.ui.menuOpen = null;
+		Saber.update();
 	};
 	changeRound = (e: Event) => {
-		this.props.setState({roundNum: (e.target as HTMLInputElement).value});
+		Saber.roundNum = (e.target as HTMLInputElement).value;
+		Saber.update();
 	};
+	name1 = `${Saber.p1.name}`;
 	changeName1 = (e: Event) => {
-		this.props.setState({name1: (e.target as HTMLInputElement).value});
+		this.name1 = (e.target as HTMLInputElement).value;
+		Saber.p1.name = this.name1;
+		Saber.update();
 	};
+	name2 = `${Saber.p2.name}`;
 	changeName2 = (e: Event) => {
-		this.props.setState({name2: (e.target as HTMLInputElement).value});
+		this.name2 = (e.target as HTMLInputElement).value;
+		Saber.p2.name = this.name2;
+		Saber.update();
 	};
+	match1 = `${Saber.p1.match}`;
 	changeMatch1 = (e: Event) => {
-		this.props.setState({match1: Number((e.target as HTMLInputElement).value)});
+		this.match1 = (e.target as HTMLInputElement).value;
+		const match1 = parseInt(this.match1 || '0');
+		Saber.p1.match = match1;
+		Saber.update();
 	};
+	match2 = `${Saber.p2.match}`;
 	changeMatch2 = (e: Event) => {
-		this.props.setState({match2: Number((e.target as HTMLInputElement).value)});
+		this.match2 = (e.target as HTMLInputElement).value;
+		const match2 = parseInt(this.match2 || '0');
+		Saber.p2.match = match2;
+		Saber.update();
 	};
+	maxMatches = `${Saber.settings.maxMatches || ''}`;
 	changeMaxMatches = (e: Event) => {
-		this.props.setState({maxMatches: Number((e.target as HTMLInputElement).value)});
+		this.maxMatches = (e.target as HTMLInputElement).value;
+		const maxMatches = parseInt(this.maxMatches || '0');
+		if (!isNaN(maxMatches)) Saber.settings.maxMatches = maxMatches;
+		Saber.update();
+	};
+	simulCutoff = `${Saber.settings.simulCutoff === Infinity ? '' : Saber.settings.simulCutoff}`;
+	changeSimulCutoff = (e: Event) => {
+		this.simulCutoff = (e.target as HTMLInputElement).value;
+		const simulCutoff = parseInt(this.simulCutoff || 'Infinity');
+		if (!isNaN(simulCutoff)) {
+			Saber.settings.simulCutoff = simulCutoff;
+		} else {
+			Saber.settings.simulCutoff = Infinity;
+		}
+		Saber.update();
 	};
 	changePauseAfterScoring = (e: Event) => {
-		this.props.setState({pauseAfterScoring: !!(e.target as HTMLInputElement).checked});
+		Saber.settings.pauseAfterScoring = !!(e.target as HTMLInputElement).checked;
+		Saber.update();
 	};
 	reset = () => {
-		this.props.setState({
-			startTime: 0,
-			pauseTime: 0,
-			pauseOffset: 0,
-			score1: 0,
-			score2: 0,
-			simul: 0,
-			menuOpen: null,
-		});
-	};
-	resetScores = () => {
-		this.props.setState({
-			score1: 0,
-			score2: 0,
-			simul: 0,
-			menuOpen: null,
-		});
-	};
-	resetTime = () => {
-		this.props.setState({
-			startTime: 0,
-			pauseTime: 0,
-			pauseOffset: 0,
-			menuOpen: null,
-		});
+		Saber.resetRound();
 	};
 	override render() {
-		const S = this.props.state;
-		const scored = !!(S.score1 || S.score2 || S.simul);
-		const started = !!S.startTime;
+		const scored = !!(Saber.p1.score || Saber.p2.score || Saber.simul);
+		const started = Saber.startTime || Saber.currentDuration !== Saber.settings.duration;
 		return <form onSubmit={this.close}>
 			<button class="button bigbutton" disabled={!scored && !started} onClick={this.reset}>Reset round</button><br />
-			<button class="button bigbutton" disabled={!scored} onClick={this.resetScores}>Reset scores</button><br />
-			<button class="button bigbutton" disabled={!started} onClick={this.resetTime}>Reset time</button><br />
 
 			<div>
-				<p><strong>Edit match settings</strong></p>
-				<div><label>Round number: <input type="number" class="textbox" value={S.roundNum} onChange={this.changeRound} onInput={this.changeRound} /></label></div>
-				<div><label>Blue name: <input type="text" class="textbox" value={S.name1} onChange={this.changeName1} onInput={this.changeName1} /></label></div>
-				<div><label>Blue match point: <input type="number" class="textbox" value={S.match1} onChange={this.changeMatch1} onInput={this.changeMatch1} /></label></div>
-				<div><label>Red name: <input type="text" class="textbox" value={S.name2} onChange={this.changeName2} onInput={this.changeName2} /></label></div>
-				<div><label>Red match point: <input type="number" class="textbox" value={S.match2} onChange={this.changeMatch2} onInput={this.changeMatch2} /></label></div>
-				<div><label>Max matches: <input type="number" class="textbox" value={S.maxMatches} onChange={this.changeMaxMatches} onInput={this.changeMaxMatches} /></label></div>
-				<div><label><input type="checkbox" checked={S.pauseAfterScoring} onChange={this.changePauseAfterScoring} onInput={this.changePauseAfterScoring} /> Pause after scoring </label></div>
+				<p><strong>Current match</strong></p>
+				<div><label>Round number: <input type="number" class="textbox" value={Saber.roundNum} onChange={this.changeRound} onInput={this.changeRound} /></label></div>
+				<table><tr><td>
+					<div><label>Left name: <br /><input type="text" class="textbox" value={Saber.p1.name} onChange={this.changeName1} onInput={this.changeName1} /></label></div>
+					<div><label>Match point: <br /><input type="number" class="textbox" value={Saber.p1.match} onChange={this.changeMatch1} onInput={this.changeMatch1} /></label></div>
+				</td><td>
+					<div><label>Right name: <br /><input type="text" class="textbox" value={Saber.p2.name} onChange={this.changeName2} onInput={this.changeName2} /></label></div>
+					<div><label>Match point: <br /><input type="number" class="textbox" value={Saber.p2.match} onChange={this.changeMatch2} onInput={this.changeMatch2} /></label></div>
+				</td></tr></table>
+				<p><strong>Settings</strong></p>
+				<div><label>Play to: <input type="number" class="textbox" value={this.maxMatches} onChange={this.changeMaxMatches} onInput={this.changeMaxMatches} />  matches</label></div>
+				<div><label>-1 score at: <input type="number" class="textbox" value={this.simulCutoff} onChange={this.changeSimulCutoff} onInput={this.changeSimulCutoff} /> simuls</label></div>
+				<div><label><input type="checkbox" checked={Saber.settings.pauseAfterScoring} onChange={this.changePauseAfterScoring} onInput={this.changePauseAfterScoring} /> Pause after scoring </label></div>
 			</div>
 
 			<button class="button" type="button" onClick={this.close}>Done</button>
@@ -181,80 +332,40 @@ class RoundEditor extends preact.Component<{setState: (state: Partial<MainState>
 	}
 }
 
-class Main extends preact.Component<{}, MainState> {
-	state: MainState = {
-		roundNum: "1",
-		match1: 0,
-		match2: 0,
-		maxMatches: 0,
-		score1: 0,
-		score2: 0,
-		name1: "Blue",
-		name2: "Red",
-		simul: 0,
-		startTime: 0,
-		pauseTime: 0,
-		pauseOffset: 0,
-		pauseAfterScoring: false,
-		duration: 5 * 60 * 1000,
-		roundDuration: 5 * 60 * 1000,
-		menuOpen: null,
-	};
-	simpleMenu = false;
+class Main extends preact.Component {
 	override componentDidMount() {
-		this.windowDidUpdateStorage();
-		window.addEventListener('storage', () => {
-			this.windowDidUpdateStorage();
-		});
 		window.addEventListener('keydown', this.keyDown);
+		Saber.subscribe(() => {
+			this.forceUpdate();
+		});
 	}
-	override componentWillUpdate(nextProps: any, nextState: any) {
-		const nextStateString = JSON.stringify(nextState);
-		if (nextStateString === JSON.stringify(this.state)) return;
-		localStorage.setItem('saber_state', nextStateString);
-	}
-	windowDidUpdateStorage() {
-		const nextStateString = localStorage.getItem('saber_state');
-		if (!nextStateString || nextStateString === JSON.stringify(this.state)) return;
-		this.setState(JSON.parse(nextStateString));
-	}
-	override componentDidUpdate(prevProps: any, prevState: any) {
-		if (this.state.menuOpen === 'time' && prevState.menuOpen !== 'time') {
-			const timeElement = document.getElementById('time');
-			timeElement && timeElement.focus();
-		}
-	}
-	setStateFromChild = (state: Partial<MainState>) => {
-		this.setState(state as any);
-	};
 	override render() {
-		const S = this.state;
-		const menuOpen = this.simpleMenu ? null : S.menuOpen;
-		return <div class="main" style={this.simpleMenu ? {zoom: 2} : null}>
-			{this.simpleMenu ? null : <img src="banner.jpg" alt="The Saber Legion" style={{width: "100%"}} />}
-			{this.simpleMenu ? <div class="bottombanner"><div><img src="banner.jpg" alt="The Saber Legion" style={{width: "100%"}} /></div></div> : null}
+		const menuOpen = Saber.ui.menuOpen;
+		const timeUp = !Saber.timeLeft();
+		return <div class="main" style={Saber.ui.bigDisplayMode ? {zoom: 2} : null}>
+			{Saber.ui.bigDisplayMode ? null : <img src="banner.jpg" alt="The Saber Legion" style={{width: "100%"}} />}
 			<div style={{textAlign: "right"}}>
-				<button class="round" onClick={this.editRound}><strong>Round {S.roundNum}</strong></button>
-				{!this.simpleMenu && <button class="button rleft" onClick={this.editTime}>Time</button>}
-				{!this.simpleMenu && <button class="button rright" onClick={this.editRound}>Edit</button>}
+				<button class="round" onClick={this.editRound}><strong>Round {Saber.roundNum}</strong></button>
+				{!Saber.ui.bigDisplayMode && <button class="button rleft" onClick={this.editTime}>Time</button>}
+				{!Saber.ui.bigDisplayMode && <button class="button rright" onClick={this.editRound}>Edit</button>}
 			</div>
 			<div class="section" style={{display: menuOpen === 'time' ? 'block' : 'none'}}>
-				{menuOpen === 'time' ? <TimeEditor setState={this.setStateFromChild} state={S} /> : null}
+				{menuOpen === 'time' ? <TimeEditor /> : null}
 			</div>
 			<div class="section" style={{display: menuOpen === 'round' ? 'block' : 'none'}}>
-				<RoundEditor setState={this.setStateFromChild} state={S} />
+				{menuOpen === 'round' && <RoundEditor />}
 			</div>
 			<button class="textbox bigtextbox" onClick={this.editTime}>
-				<TimeLeft {...this.timeLeft()} />
+				<TimeLeft />
 			</button>
 
 			<table>
 				<tr><td width="34%">
-					<label class="p1 name">{S.name1}</label>
+					<label class="p1 name">{Saber.p1.name}</label>
 				</td><td>
 					<label>&nbsp;</label>
 				</td><td width="34%">
-					<label class="p2 name">{S.name2}</label>
+					<label class="p2 name">{Saber.p2.name}</label>
 				</td></tr>
 			</table>
 
@@ -262,33 +373,36 @@ class Main extends preact.Component<{}, MainState> {
 				<tr><td width="34%">
 					<button class="score p1" onClick={this.plusScore1} onContextMenu={this.minusScore1}>
 						Score:<br />
-						<strong>{S.score1}</strong>
+						<strong>{Saber.p1.score}</strong>
 					</button>
-					<label class="p1 dots">{"\u25CF ".repeat(S.match1) + "\u25CB ".repeat(Math.max(S.maxMatches - S.match1, 0))}</label>
+					<label class="p1 dots">{"\u25CF ".repeat(Saber.p1.match) + "\u25CB ".repeat(Math.max(Saber.settings.maxMatches - Saber.p1.match, 0))}</label>
 				</td><td>
 					<button class="score" onClick={this.plusSimul} onContextMenu={this.minusSimul}>
 						Simul:<br />
-						<strong>{S.simul}</strong>
+						<strong>{Saber.simul}</strong>
 					</button>
+					<div class="suddendeath">{Saber.suddenDeath && <strong>SUDDEN DEATH</strong>}</div>
 				</td><td width="34%">
 					<button class="score p2" onClick={this.plusScore2} onContextMenu={this.minusScore2}>
 						Score:<br />
-						<strong>{S.score2}</strong>
+						<strong>{Saber.p2.score}</strong>
 					</button>
-					<label class="p2 dots">{"\u25CF ".repeat(S.match2) + "\u25CB ".repeat(Math.max(S.maxMatches - S.match2, 0))}</label>
+					<label class="p2 dots">{"\u25CF ".repeat(Saber.p2.match) + "\u25CB ".repeat(Math.max(Saber.settings.maxMatches - Saber.p2.match, 0))}</label>
 				</td></tr>
 
-				{!this.simpleMenu && <tr><td colSpan={3}>
-					{!S.startTime ?
-						<button class="button verybigbutton" onClick={this.start}>Start</button>
-					: S.pauseTime ?
-						<button class="button verybigbutton" onClick={this.start}>Resume</button>
+				{!Saber.ui.bigDisplayMode && <tr><td colSpan={3}>
+					{timeUp ? 
+						<button class="button verybigbutton" disabled>TIME UP</button>
+					: Saber.startTime ? 
+						<button class="button verybigbutton" onClick={this.startPause}>Pause</button>
+					: Saber.currentDuration === Saber.settings.duration ?
+						<button class="button verybigbutton" onClick={this.startPause}>Start</button>
 					:
-						<button class="button verybigbutton" onClick={this.pause}>Pause</button>
+						<button class="button verybigbutton" onClick={this.startPause}>Resume</button>
 					}
 				</td></tr>}
 
-				{!this.simpleMenu && <tr><td>
+				{!Saber.ui.bigDisplayMode && <tr><td>
 					<button class="button bigbutton" onClick={this.plusScore1}>
 						+1
 					</button><br />
@@ -311,36 +425,27 @@ class Main extends preact.Component<{}, MainState> {
 					</button>
 				</td></tr>}
 
+				{!Saber.ui.bigDisplayMode && <tr><td colSpan={3}>
+					<p><button class="button widebutton" onClick={this.nextRound} disabled={!timeUp}>
+						{Saber.winner() || Saber.suddenDeath ? "Next round" : "Tiebreaker"}
+					</button></p>
+					<p><button class="button widebutton" onClick={this.forceEnd} disabled={timeUp}>
+						Force-end round
+					</button></p>
+				</td></tr>}
+
 			</table>
+
+			{Saber.ui.bigDisplayMode ? <div class="bottombanner"><div><img src="banner.jpg" alt="The Saber Legion" style={{width: "100%"}} /></div></div> : null}
 		</div>;
-	}
-	timeLeft = () => {
-		const S = this.state;
-		// console.log("duration:" + S.duration);
-		if (!S.startTime) {
-			return {
-				endTime: 0,
-				pausedTimeLeft: S.duration,
-			};
-		}
-		if (S.pauseTime) {
-			const elapsed = S.pauseTime - S.startTime - S.pauseOffset;
-			return {
-				endTime: 0,
-				pausedTimeLeft: S.duration - elapsed,
-			};
-		}
-		return {
-			endTime: S.startTime + S.duration + S.pauseOffset,
-		};
 	}
 	keyDown = (e: KeyboardEvent) => {
 		// if (['INPUT', 'BUTTON'].includes((e.target as HTMLElement).tagName)) return;
 		if (['INPUT'].includes((e.target as HTMLElement).tagName)) return;
-		if (e.keyCode === 70) {
+		if (e.keyCode === 70) { // F
 			e.preventDefault();
-			this.simpleMenu = !this.simpleMenu;
-			this.forceUpdate();
+			Saber.ui.bigDisplayMode = !Saber.ui.bigDisplayMode;
+			Saber.update();
 		} else if (e.keyCode === 32) {
 			e.preventDefault();
 			this.startPause();
@@ -362,96 +467,69 @@ class Main extends preact.Component<{}, MainState> {
 		} else if (e.keyCode === 68) { // D
 			e.preventDefault();
 			this.minusScore2(null);
+		} else if (e.keyCode === 78) { // N
+			e.preventDefault();
+			this.nextRound(null);
 		}
 	};
 	editRound = () => {
-		this.setState({
-			menuOpen: this.state.menuOpen === 'round' ? null : 'round',
-		});
+		Saber.ui.menuOpen = (Saber.ui.menuOpen === 'round' ? null : 'round');
+		Saber.update();
 	};
 	editTime = () => {
-		this.setState({
-			menuOpen: this.state.menuOpen === 'time' ? null : 'time',
-		});
+		Saber.ui.menuOpen = (Saber.ui.menuOpen === 'time' ? null : 'time');
+		Saber.pause() || Saber.update();
 	};
 	startPause = () => {
-		if (this.state.startTime && !this.state.pauseTime) {
-			this.pause();
+		if (Saber.startTime) {
+			Saber.pause();
 		} else {
-			this.start();
+			Saber.resume();
 		}
-	};
-	start = () => {
-		console.log('start');
-		if (this.state.pauseTime) {
-			this.setState({
-				pauseOffset: this.state.pauseOffset + Date.now() - this.state.pauseTime,
-				pauseTime: 0,
-			})
-		}
-		if (this.state.startTime) return;
-		this.setState({
-			startTime: Date.now(),
-		});
-	};
-	pause = () => {
-		console.log('pause');
-		if (this.state.pauseTime) return;
-		if (!this.state.startTime) return;
-		this.setState({
-			pauseTime: Date.now(),
-		});
 	};
 	plusScore1 = (e: MouseEvent | null) => {
-		if (e) e.preventDefault();
-		this.setState({
-			score1: this.state.score1 + 1,
-		});
-		if (this.state.pauseAfterScoring) this.pause();
+		e?.preventDefault();
+		Saber.p1.score++;
+		Saber.scored();
 	};
 	minusScore1 = (e: MouseEvent | null) => {
-		if (e) e.preventDefault();
-		this.setState({
-			score1: this.state.score1 - 1,
-		});
-		if (this.state.pauseAfterScoring) this.pause();
+		e?.preventDefault();
+		Saber.p1.score--;
+		Saber.scored();
 	};
 	plusScore2 = (e: MouseEvent | null) => {
-		if (e) e.preventDefault();
-		this.setState({
-			score2: this.state.score2 + 1,
-		});
-		if (this.state.pauseAfterScoring) this.pause();
+		e?.preventDefault();
+		Saber.p2.score++;
+		Saber.scored();
 	};
 	minusScore2 = (e: MouseEvent | null) => {
-		if (e) e.preventDefault();
-		this.setState({
-			score2: this.state.score2 - 1,
-		});
-		if (this.state.pauseAfterScoring) this.pause();
+		e?.preventDefault();
+		Saber.p2.score--;
+		Saber.scored();
 	};
 	plusSimul = (e: MouseEvent | null) => {
-		if (e) e.preventDefault();
-		let deltaScore = (this.state.simul + 1 >= SIMUL_CUTOFF ? -1 : 0);
-		if (this.state.score1 <= 0 || this.state.score2 <= 0) deltaScore = 0;
-		this.setState({
-			simul: this.state.simul + 1,
-			score1: this.state.score1 + deltaScore,
-			score2: this.state.score2 + deltaScore,
-		});
-		if (this.state.score1 < 0) this.setState({score1: 0});
-		if (this.state.score2 < 0) this.setState({score2: 0});
-		if (this.state.pauseAfterScoring) this.pause();
+		e?.preventDefault();
+		Saber.simul++;
+		const deltaScore = (Saber.simul >= Saber.settings.simulCutoff ? -1 : 0);
+		Saber.p1.score += deltaScore;
+		Saber.p2.score += deltaScore;
+		Saber.scored();
 	};
 	minusSimul = (e: MouseEvent | null) => {
-		if (e) e.preventDefault();
-		let deltaScore = (this.state.simul + 1 > SIMUL_CUTOFF ? 1 : 0);
-		this.setState({
-			simul: this.state.simul - 1,
-			score1: this.state.score1 + deltaScore,
-			score2: this.state.score2 + deltaScore,
-		});
-		if (this.state.pauseAfterScoring) this.pause();
+		e?.preventDefault();
+		const deltaScore = (Saber.simul >= Saber.settings.simulCutoff ? -1 : 0);
+		Saber.simul--;
+		Saber.p1.score -= deltaScore;
+		Saber.p2.score -= deltaScore;
+		Saber.scored();
+	};
+	nextRound = (e: MouseEvent | null) => {
+		e?.preventDefault();
+		Saber.nextRound();
+	};
+	forceEnd = (e: MouseEvent | null) => {
+		Saber.currentDuration = 0;
+		Saber.update();
 	};
 }
 
