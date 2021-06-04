@@ -348,9 +348,11 @@ class RoundEditor extends preact.Component {
 					<div><label>Color: <br /><select class="textbox" value={Saber.p1.color} onChange={this.changeColor1}>
 						<option value="blue">🟦 Blue</option>
 						<option value="green">🟩 Green</option>
+						<option value="yellow">🟨 Gold</option>
 						<option value="orange">🟧 Orange</option>
 						<option value="red">🟥 Red</option>
 						<option value="purple">🟪 Purple</option>
+						<option value="black">⬛️ Black</option>
 					</select></label></div>
 					<div><label>Match point: <br /><input type="number" class="textbox" value={Saber.p1.match} onChange={this.changeMatch1} onInput={this.changeMatch1} /></label></div>
 				</td><td>
@@ -359,9 +361,11 @@ class RoundEditor extends preact.Component {
 					<div><label>Color: <br /><select class="textbox" value={Saber.p2.color} onChange={this.changeColor2}>
 						<option value="blue">🟦 Blue</option>
 						<option value="green">🟩 Green</option>
+						<option value="yellow">🟨 Gold</option>
 						<option value="orange">🟧 Orange</option>
 						<option value="red">🟥 Red</option>
 						<option value="purple">🟪 Purple</option>
+						<option value="black">⬛️ Black</option>
 					</select></label></div>
 					<div><label>Match point: <br /><input type="number" class="textbox" value={Saber.p2.match} onChange={this.changeMatch2} onInput={this.changeMatch2} /></label></div>
 				</td></tr></table>
