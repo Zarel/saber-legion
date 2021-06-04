@@ -148,8 +148,8 @@ td {
 	display: inline-block;
 	margin: 10px auto;
 	width: 80px;
-	height: 30px;
-	font-size: 22pt;
+	height: auto;
+	font-size: 18pt;
 	text-align: center;
 
 	border: 1px solid #AAAAAA;
@@ -160,6 +160,10 @@ td {
 	background: #F8FBFD;
 	color: black;
 }
+select.textbox {
+	width: auto;
+}
+
 .textbox[type=text] {
 	width: 150px;
 }
@@ -210,19 +214,40 @@ td {
 	padding: 5px 0;
 	border-radius: 10px;
 }
-.p1 {
+.blue {
 	color: #4444BB;
 }
-.p2 {
-	color: #994444;
+.green {
+	color: #449944;
 }
-.score.p1 {
+.purple {
+	color: #9944AA;
+}
+.orange {
+	color: #C97028;
+}
+.red {
+	color: #AA4444;
+}
+.score.blue {
 	color: white;
 	background: #4444BB;
 }
-.score.p2 {
+.score.green {
 	color: white;
-	background: #994444;
+	background: #449944;
+}
+.score.purple {
+	color: white;
+	background: #9944AA;
+}
+.score.orange {
+	color: white;
+	background: #C97028;
+}
+.score.red {
+	color: white;
+	background: #AA4444;
 }
 label {
 	display: block;
@@ -238,6 +263,11 @@ label.name {
 	font-size: 20pt;
 	white-space: nowrap;
 	font-weight: bold;
+}
+label.name small {
+	display: block;
+	font-size: 12pt;
+	font-weight: normal;
 }
 .help {
 	max-width: 600px;

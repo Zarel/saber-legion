@@ -5,11 +5,15 @@ class SaberState {
 		match: 0,
 		score: 0,
 		name: "Blue",
+		subtitle: '',
+		color: 'blue',
 	};
 	p2 = {
 		match: 0,
 		score: 0,
 		name: "Red",
+		subtitle: '',
+		color: 'red',
 	};
 	simul = 0;
 
@@ -174,7 +178,7 @@ class TimeLeft extends preact.Component {
 		if (msLeft <= 0) {
 			const winner = Saber.winner();
 			if (!winner) return <strong>TIE</strong>;
-			return <span class="winner">WINNER:<strong>{winner.name || (winner == Saber.p1 ? 'Left' : 'Right')}</strong></span>;
+			return <span class="winner">WINNER:<strong class={winner.color}>{winner.name || (winner == Saber.p1 ? 'Left' : 'Right')}</strong></span>;
 		}
 		let cs = `${Math.floor(msLeft / 10) % 100}`.padStart(2, '0');
 		let s = `${Math.floor(msLeft / 1000) % 60}`.padStart(2, '0');
@@ -270,6 +274,26 @@ class RoundEditor extends preact.Component {
 		Saber.p2.name = this.name2;
 		Saber.update();
 	};
+	subtitle1 = `${Saber.p1.subtitle}`;
+	changeSubtitle1 = (e: Event) => {
+		this.subtitle1 = (e.target as HTMLInputElement).value;
+		Saber.p1.subtitle = this.subtitle1;
+		Saber.update();
+	};
+	subtitle2 = `${Saber.p2.subtitle}`;
+	changeSubtitle2 = (e: Event) => {
+		this.subtitle2 = (e.target as HTMLInputElement).value;
+		Saber.p2.subtitle = this.subtitle2;
+		Saber.update();
+	};
+	changeColor1 = (e: Event) => {
+		Saber.p1.color = (e.target as HTMLSelectElement).value;
+		Saber.update();
+	};
+	changeColor2 = (e: Event) => {
+		Saber.p2.color = (e.target as HTMLSelectElement).value;
+		Saber.update();
+	};
 	match1 = `${Saber.p1.match}`;
 	changeMatch1 = (e: Event) => {
 		this.match1 = (e.target as HTMLInputElement).value;
@@ -320,9 +344,25 @@ class RoundEditor extends preact.Component {
 				<div><label>Round number: <input type="number" class="textbox" value={Saber.roundNum} onChange={this.changeRound} onInput={this.changeRound} /></label></div>
 				<table><tr><td>
 					<div><label>Left name: <br /><input type="text" class="textbox" value={Saber.p1.name} onChange={this.changeName1} onInput={this.changeName1} /></label></div>
+					<div><label>Subtitle: <br /><input type="text" class="textbox" value={Saber.p1.subtitle} onChange={this.changeSubtitle1} onInput={this.changeSubtitle1} /></label></div>
+					<div><label>Color: <br /><select class="textbox" value={Saber.p1.color} onChange={this.changeColor1}>
+						<option value="blue">🟦 Blue</option>
+						<option value="green">🟩 Green</option>
+						<option value="orange">🟧 Orange</option>
+						<option value="red">🟥 Red</option>
+						<option value="purple">🟪 Purple</option>
+					</select></label></div>
 					<div><label>Match point: <br /><input type="number" class="textbox" value={Saber.p1.match} onChange={this.changeMatch1} onInput={this.changeMatch1} /></label></div>
 				</td><td>
 					<div><label>Right name: <br /><input type="text" class="textbox" value={Saber.p2.name} onChange={this.changeName2} onInput={this.changeName2} /></label></div>
+					<div><label>Subtitle: <br /><input type="text" class="textbox" value={Saber.p2.subtitle} onChange={this.changeSubtitle2} onInput={this.changeSubtitle2} /></label></div>
+					<div><label>Color: <br /><select class="textbox" value={Saber.p2.color} onChange={this.changeColor2}>
+						<option value="blue">🟦 Blue</option>
+						<option value="green">🟩 Green</option>
+						<option value="orange">🟧 Orange</option>
+						<option value="red">🟥 Red</option>
+						<option value="purple">🟪 Purple</option>
+					</select></label></div>
 					<div><label>Match point: <br /><input type="number" class="textbox" value={Saber.p2.match} onChange={this.changeMatch2} onInput={this.changeMatch2} /></label></div>
 				</td></tr></table>
 				<p><strong>Settings</strong></p>
@@ -365,21 +405,25 @@ class Main extends preact.Component {
 
 			<table class="layout">
 				<tr><td width="34%">
-					<label class="p1 name">{Saber.p1.name}</label>
+					<label class={`name ${Saber.p1.color}`}>
+						{Saber.p1.name}<small>{Saber.p1.subtitle}</small>
+					</label>
 				</td><td>
 					<label>&nbsp;</label>
 				</td><td width="34%">
-					<label class="p2 name">{Saber.p2.name}</label>
+					<label class={`name ${Saber.p2.color}`}>
+						{Saber.p2.name}<small>{Saber.p2.subtitle}</small>
+					</label>
 				</td></tr>
 			</table>
 
 			<table class="layout">
 				<tr><td width="34%">
-					<button class="score p1" onClick={this.plusScore1} onContextMenu={this.minusScore1}>
+					<button class={`score ${Saber.p1.color}`} onClick={this.plusScore1} onContextMenu={this.minusScore1}>
 						Score:<br />
 						<strong>{Saber.p1.score}</strong>
 					</button>
-					<label class="p1 dots">{"\u25CF ".repeat(Saber.p1.match) + "\u25CB ".repeat(Math.max(Saber.settings.maxMatches - Saber.p1.match, 0))}</label>
+					<label class={`dots ${Saber.p1.color}`}>{"\u25CF ".repeat(Saber.p1.match) + "\u25CB ".repeat(Math.max(Saber.settings.maxMatches - Saber.p1.match, 0))}</label>
 				</td><td>
 					<button class="score" onClick={this.plusSimul} onContextMenu={this.minusSimul}>
 						Simul:<br />
@@ -387,11 +431,11 @@ class Main extends preact.Component {
 					</button>
 					<div class="suddendeath">{Saber.suddenDeath && <strong>SUDDEN DEATH</strong>}</div>
 				</td><td width="34%">
-					<button class="score p2" onClick={this.plusScore2} onContextMenu={this.minusScore2}>
+					<button class={`score ${Saber.p2.color}`} onClick={this.plusScore2} onContextMenu={this.minusScore2}>
 						Score:<br />
 						<strong>{Saber.p2.score}</strong>
 					</button>
-					<label class="p2 dots">{"\u25CF ".repeat(Saber.p2.match) + "\u25CB ".repeat(Math.max(Saber.settings.maxMatches - Saber.p2.match, 0))}</label>
+					<label class={`dots ${Saber.p2.color}`}>{"\u25CF ".repeat(Saber.p2.match) + "\u25CB ".repeat(Math.max(Saber.settings.maxMatches - Saber.p2.match, 0))}</label>
 				</td></tr>
 
 				{!Saber.ui.bigDisplayMode && <tr><td colSpan={3}>
