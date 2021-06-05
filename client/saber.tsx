@@ -1,3 +1,4 @@
+import * as preact from 'preact';
 
 class SaberState {
 	roundNum = "1";
@@ -343,7 +344,7 @@ class RoundEditor extends preact.Component {
 		textbox.style.height = `${newHeight}px`;
 	}
 	override componentDidMount() {
-		const results = this.base!.querySelectorAll('textarea');
+		const results = (this.base as Element).querySelectorAll('textarea');
 		for (let i = 0; i < results.length; i++) {
 			this.autosize(results[i]);
 		}
@@ -405,7 +406,7 @@ class Main extends preact.Component {
 	renderMain() {
 		const menuOpen = Saber.ui.menuOpen;
 		const timeUp = !Saber.timeLeft();
-		return <div class="main" style={Saber.ui.bigDisplayMode ? {zoom: 2} : null}>
+		return <div class="main" style={Saber.ui.bigDisplayMode ? {zoom: 2} : undefined}>
 			{Saber.ui.bigDisplayMode ? null : <img src="banner.jpg" alt="The Saber Legion" style={{width: "100%"}} />}
 			<div class="rounds">
 				<button class="round" onClick={this.editRound}><strong>Round {Saber.roundNum}</strong></button>

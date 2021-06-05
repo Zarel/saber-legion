@@ -1,0 +1,16 @@
+#!/usr/bin/env node
+
+"use strict";
+
+const esbuild = require('esbuild');
+
+esbuild.build({
+  entryPoints: ['client/saber.tsx'],
+  bundle: true,
+  outfile: 'client/saber.js',
+  watch: process.argv.includes('-w'),
+  format: 'esm',
+  minify: true,
+  target: 'es6',
+  sourcemap: true,
+});

@@ -1,13 +1,15 @@
 {
-  "include": ["node_modules/preact/dist/preact.d.ts", "saber.tsx"],
+  "include": ["client/saber.tsx"],
   "compilerOptions": {
     "target": "es5",
-    "module": "none",
+    "module": "commonjs",
     "lib": ["esnext", "dom"],
     "jsx": "react",
     "jsxFactory": "preact.h",
+    "jsxFragmentFactory": "preact.Fragment",
     "strict": true,
     "sourceMap": true,
+    "noEmit": true,
     "esModuleInterop": true
   }
 }

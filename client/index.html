@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html><head>
+	<title>Saber Legion Score/Time</title>
+	<meta id="viewport" name="viewport" content="width=device-width" />
+	<link rel="manifest" href="manifest.webmanifest" />
+	<link rel="apple-touch-icon" href="saber-icon.png">
+
+	<style>
+html, body {
+	margin: 0;
+	padding: 0;
+}
+html, button {
+	font: 15pt sans-serif;
+	color: black;
+	background: #EEE;
+	text-align: center;
+}
+td {
+	vertical-align: top;
+}
+.main {
+	max-width: 340px;
+	margin: 0 auto;
+}
+.score strong {
+	font-size: 34pt;
+}
+.button {
+	outline: none;
+	cursor: pointer;
+	text-align: center;
+	text-decoration: none;
+	border-radius: 10px;
+	box-shadow: 0 1px 2px rgba(0,0,0,.2), inset 0 -1px 2px rgba(255,255,255,1);
+	display: inline-block;
+
+	/* default colors */
+	color: #222222;
+	text-shadow: 0 1px 0 white;
+	border: solid 1px #AAAAAA;
+	background: #e3e3e3;
+	background: linear-gradient(to bottom,  #f6f6f6,  #e3e3e3);
+
+	width: 70px;
+	height: 30px;
+	padding: 3px 0;
+}
+.button:hover {
+	background: #cfcfcf;
+	background: linear-gradient(to bottom,  #f2f2f2,  #c2c2c2);
+	border-color: #606060;
+}
+.button:disabled {
+	cursor: default;
+	background: #EEEEEE;
+	border-color: #CCCCCC;
+	border-style: solid;
+	color: #999999;
+	text-shadow: none;
+	box-shadow: 0 1px 2px rgba(0,0,0,.1);
+}
+.button:active {
+	background: linear-gradient(to bottom,  #cfcfcf,  #f2f2f2);
+}
+.button.bigbutton {
+	width: 100px;
+	height: 50px;
+	margin-bottom: 10px;
+}
+.button.widebutton {
+	width: auto;
+	padding: 3px 18px;
+	margin-bottom: 10px;
+}
+.button.verybigbutton {
+	width: 150px;
+	height: 80px;
+	margin-bottom: 10px;
+	font-size: 26pt;
+	border-radius: 15px;
+}
+.suddendeath {
+	position: relative;
+}
+.suddendeath strong {
+	position: absolute;
+	top: -50px;
+	left: -121px;
+	right: -121px;
+	padding: 6px 0;
+	border-radius: 10px;
+	font-size: 18pt;
+	color: white;
+	background: black;
+	font-weight: bold;
+}
+
+.round {
+	display: block;
+	border: 0 none;
+	background: #333;
+	color: white;
+	width: 100%;
+	height: 40px;
+}
+.rleft {
+	float: left;
+	margin-top: -35px;
+	margin-left: 5px;
+	border-radius: 5px;
+	position: relative;
+}
+.rright {
+	float: right;
+	margin-top: -35px;
+	margin-right: 5px;
+	border-radius: 5px;
+	position: relative;
+}
+.bottombanner {
+	text-align: center;
+}
+.bottombanner div {
+	width: 340px;
+	margin: 0 auto;
+}
+
+.section {
+	border: 1px solid #888;
+	background: #DDD;
+	border-top-width: 0;
+	border-bottom-left-radius: 5px;
+	border-bottom-right-radius: 5px;
+	padding: 5px 10px;
+	text-align: right;
+}
+.section .button {
+	width: 100px;
+}
+.section .bigbutton {
+	width: 150px;
+}
+.section p {
+	text-align: left;
+}
+.textbox {
+	display: inline-block;
+	margin: 10px auto;
+	width: 80px;
+	height: auto;
+	font: 18pt sans-serif;
+	text-align: center;
+
+	border: 1px solid #AAAAAA;
+	border-radius: 3px;
+	padding: 2px 3px;
+
+	box-shadow: inset 0px 1px 2px #CCCCCC, 1px 1px 0 rgba(255,255,255,.6);
+	background: #F8FBFD;
+	color: black;
+}
+select.textbox {
+	width: auto;
+}
+
+.textbox[type=text] {
+	width: 150px;
+}
+textarea.textbox {
+	width: 150px;
+	resize: none;
+	font-size: 14pt;
+}
+.bigtextbox {
+	margin: 10px auto 6px;
+	height: 70px;
+	width: 250px;
+	font-size: 42pt;
+}
+.textbox:hover {
+	border-color: #474747;
+	box-shadow: inset 0px 1px 2px #D2D2D2, 1px 1px 0 rgba(255,255,255,.6);
+	background: #FFFFFF;
+}
+.textbox:focus,
+.button:focus {
+	outline: 0 none;
+	border-color: #004488;
+	box-shadow: inset 0px 1px 2px #D2D2D2, 0px 0px 5px #2266AA;
+}
+.winner {
+	display: block;
+	font-size: 14pt;
+}
+.winner strong {
+	display: block;
+	font-size: 24pt;
+}
+.layout {
+	width: 100%;
+	border: 0;
+}
+.table {
+	border: 1px solid #888;
+	margin: 0 auto;
+	text-align: left;
+	border-collapse: collapse;
+	font-size: 11pt;
+}
+.table th, .table td {
+	border: 1px solid #888;
+	padding: 2px 6px;
+}
+.score {
+	display: block;
+	border: 0 none;
+	width: 100%;
+	padding: 5px 0;
+	border-radius: 10px;
+}
+.blue {
+	color: #4444BB;
+}
+.green {
+	color: #449944;
+}
+.yellow {
+	color: #A38500;
+}
+.orange {
+	color: #C97028;
+}
+.red {
+	color: #AA4444;
+}
+.purple {
+	color: #9944AA;
+}
+.black {
+	color: #444444;
+}
+.score.blue {
+	color: white;
+	background: #4444BB;
+}
+.score.green {
+	color: white;
+	background: #449944;
+}
+.score.yellow {
+	color: white;
+	background: #A38500;
+}
+.score.orange {
+	color: white;
+	background: #C97028;
+}
+.score.red {
+	color: white;
+	background: #AA4444;
+}
+.score.purple {
+	color: white;
+	background: #9944AA;
+}
+.score.black {
+	color: white;
+	background: #444444;
+}
+label {
+	display: block;
+	padding-bottom: 3px;
+}
+label.dots {
+	font-size: 22pt;
+	letter-spacing: -2px;
+	margin-top: -4px;
+	font-weight: bold;
+}
+label.name {
+	font-size: 20pt;
+	white-space: nowrap;
+	font-weight: bold;
+}
+label.name small {
+	display: block;
+	font-size: 12pt;
+	font-weight: normal;
+}
+.help {
+	max-width: 600px;
+	margin: auto;
+	padding: 1px 4px;
+}
+.help p {
+	padding: 0 4px;
+}
+	</style>
+</head><body>
+	<script src="saber.js?v4"></script>
+</body></html>
