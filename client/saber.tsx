@@ -291,12 +291,23 @@ class RoundEditor extends preact.Component {
 		this.autosize(textbox);
 		Saber.update();
 	};
+	capitalizeFirst(text: string) {
+		return text.charAt(0).toUpperCase() + text.slice(1);
+	}
 	changeColor1 = (e: Event) => {
-		Saber.p1.color = (e.target as HTMLSelectElement).value;
+		const newColor = (e.target as HTMLSelectElement).value;
+		if (Saber.p1.name === this.capitalizeFirst(Saber.p1.color)) {
+			Saber.p1.name = this.capitalizeFirst(newColor);
+		}
+		Saber.p1.color = newColor;
 		Saber.update();
 	};
 	changeColor2 = (e: Event) => {
-		Saber.p2.color = (e.target as HTMLSelectElement).value;
+		const newColor = (e.target as HTMLSelectElement).value;
+		if (Saber.p2.name === this.capitalizeFirst(Saber.p2.color)) {
+			Saber.p2.name = this.capitalizeFirst(newColor);
+		}
+		Saber.p2.color = newColor;
 		Saber.update();
 	};
 	match1 = `${Saber.p1.match}`;
