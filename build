@@ -8,7 +8,7 @@ esbuild.build({
   entryPoints: ['client/saber.tsx'],
   bundle: true,
   outfile: 'client/saber.js',
-  watch: process.argv.includes('-w'),
+  watch: process.argv.includes('-w') || process.argv.includes('--watch'),
   format: 'esm',
   minify: true,
   target: 'es6',
