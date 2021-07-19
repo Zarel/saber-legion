@@ -8,7 +8,7 @@
 	"short_name": "TSL Score",
 	"theme_color": "black",
 	"description": "",
-	"orientation": "portrait",
+	"orientation": "any",
 	"background_color": "#EEEEEE",
 	"icons": [{
 		"src": "https://guangcongluo.com/saber/saber-icon.png",
