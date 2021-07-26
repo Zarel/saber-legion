@@ -19,6 +19,7 @@ class SaberState {
 	simul = 0;
 
 	suddenDeath = false;
+	showWinner = false;
 	/** Time left as of the last time we resumed */
 	currentDuration = 5 * 60 * 1000;
 	/** null = paused, otherwise: the last time we hit start/resume */
@@ -29,6 +30,7 @@ class SaberState {
 		suddenDeath: false,
 		tiebreakerDuration: 30 * 1000,
 		pauseAfterScoring: false,
+		autoShowWinner: false,
 		maxMatches: 0,
 		simulCutoff: 3,
 	};
@@ -75,6 +77,7 @@ class SaberState {
 		if (Saber.suddenDeath && this.p1.score !== this.p2.score) {
 			this.currentDuration = 0;
 		}
+		if (!Saber.timeLeft()) Saber.showWinner = true;
 		(this.settings.pauseAfterScoring && this.pause()) || this.update();
 	}
 	update() {
@@ -108,6 +111,7 @@ class SaberState {
 		this.p2.score = 0;
 		this.simul = 0;
 		this.currentDuration = this.settings.duration;
+		this.showWinner = this.settings.autoShowWinner;
 		this.suddenDeath = false;
 		this.startTime = 0;
 		this.update();
@@ -122,6 +126,7 @@ class SaberState {
 			currentDuration: this.currentDuration,
 			startTime: this.startTime,
 			suddenDeath: this.suddenDeath,
+			showWinner: this.showWinner,
 			settings: this.settings,
 		};
 	}
@@ -177,6 +182,9 @@ class TimeLeft extends preact.Component {
 	override render() {
 		const msLeft = Saber.timeLeft();
 		if (msLeft <= 0) {
+			if (!Saber.showWinner && !Saber.suddenDeath) {
+				return <strong>TIME UP</strong>;
+			}
 			const winner = Saber.winner();
 			if (!winner) return <strong>TIE</strong>;
 			return <span class="winner">WINNER:<strong class={winner.color}>{winner.name || (winner == Saber.p1 ? 'Left' : 'Right')}</strong></span>;
@@ -346,6 +354,11 @@ class RoundEditor extends preact.Component {
 		Saber.settings.pauseAfterScoring = !!(e.target as HTMLInputElement).checked;
 		Saber.update();
 	};
+	changeAutoShowWinner = (e: Event) => {
+		Saber.settings.autoShowWinner = !(e.target as HTMLInputElement).checked;
+		Saber.showWinner = Saber.settings.autoShowWinner;
+		Saber.update();
+	};
 	reset = () => {
 		Saber.resetRound();
 	};
@@ -400,6 +413,7 @@ class RoundEditor extends preact.Component {
 				<div><label>Play to: <input type="number" class="textbox" value={this.maxMatches} onChange={this.changeMaxMatches} onInput={this.changeMaxMatches} />  matches</label></div>
 				<div><label>-1 score at: <input type="number" class="textbox" value={this.simulCutoff} onChange={this.changeSimulCutoff} onInput={this.changeSimulCutoff} /> simuls</label></div>
 				<div><label><input type="checkbox" checked={Saber.settings.pauseAfterScoring} onChange={this.changePauseAfterScoring} onInput={this.changePauseAfterScoring} /> Pause after scoring </label></div>
+				<div><label><input type="checkbox" checked={!Saber.settings.autoShowWinner} onChange={this.changeAutoShowWinner} onInput={this.changeAutoShowWinner} /> Wait for scoring after time up, before showing winner </label></div>
 			</div>
 
 			<button class="button" type="button" onClick={this.close}>Done</button>
@@ -473,7 +487,9 @@ class Main extends preact.Component {
 
 				{!Saber.ui.bigDisplayMode && <tr><td colSpan={3}>
 					{timeUp ? 
-						<button class="button verybigbutton" disabled>TIME UP</button>
+						<button class="button verybigbutton" onClick={this.toggleShowWinner}>
+							<small style={{fontSize: '16pt'}}>{Saber.showWinner ? "Hide winner" : "Show winner"}</small>
+						</button>
 					: Saber.startTime ? 
 						<button class="button verybigbutton" onClick={this.startPause}>Pause</button>
 					: Saber.currentDuration === Saber.settings.duration ?
@@ -569,9 +585,13 @@ class Main extends preact.Component {
 			e.preventDefault();
 			Saber.ui.bigDisplayMode = !Saber.ui.bigDisplayMode;
 			Saber.update();
-		} else if (e.keyCode === 32) {
+		} else if (e.keyCode === 32) { // spacebar
 			e.preventDefault();
-			this.startPause();
+			if (Saber.timeLeft()) {
+				this.startPause();
+			} else {
+				this.toggleShowWinner();
+			}
 		} else if (e.keyCode === 81) { // Q
 			e.preventDefault();
 			this.plusScore1(null);
@@ -610,6 +630,10 @@ class Main extends preact.Component {
 			Saber.resume();
 		}
 	};
+	toggleShowWinner = () => {
+		Saber.showWinner = !Saber.showWinner;
+		Saber.update();
+	}
 	plusScore1 = (e: MouseEvent | null) => {
 		e?.preventDefault();
 		Saber.p1.score++;
