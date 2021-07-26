@@ -143,7 +143,7 @@ class SaberState {
 		Object.assign(this.settings, data.settings);
 		this.update();
 	}
-};
+}
 const Saber = new SaberState();
 type MainState = ReturnType<SaberState['toJSON']>;
 
@@ -175,15 +175,15 @@ class TimeLeft extends preact.Component {
 		}
 	}
 	override render() {
-		let msLeft = Saber.timeLeft();
+		const msLeft = Saber.timeLeft();
 		if (msLeft <= 0) {
 			const winner = Saber.winner();
 			if (!winner) return <strong>TIE</strong>;
 			return <span class="winner">WINNER:<strong class={winner.color}>{winner.name || (winner == Saber.p1 ? 'Left' : 'Right')}</strong></span>;
 		}
-		let cs = `${Math.floor(msLeft / 10) % 100}`.padStart(2, '0');
-		let s = `${Math.floor(msLeft / 1000) % 60}`.padStart(2, '0');
-		let m = Math.floor(msLeft / (1000 * 60));
+		const cs = `${Math.floor(msLeft / 10) % 100}`.padStart(2, '0');
+		const s = `${Math.floor(msLeft / 1000) % 60}`.padStart(2, '0');
+		const m = Math.floor(msLeft / (1000 * 60));
 		return <strong>{m}:{s}<small>.{cs}</small></strong>;
 	}
 }
@@ -194,7 +194,7 @@ class TimeEditor extends preact.Component {
 	textTime(ms: number) {
 		let s = Math.trunc(ms / 1000);
 		ms = ms % 1000;
-		let m = Math.trunc(s / 60);
+		const m = Math.trunc(s / 60);
 		s = s % 60;
 
 		const sDisplay = `${s}`.padStart(2, '0');
@@ -202,7 +202,7 @@ class TimeEditor extends preact.Component {
 		return `${m}:${sDisplay}${msDisplay}`;
 	}
 	parseTextTime(str: string) {
-		const result = /^(?:([0-9]+)\:)?([0-9]+)(?:\.([0-9]+))?$/.exec(str.trim());
+		const result = /^(?:([0-9]+):)?([0-9]+)(?:\.([0-9]+))?$/.exec(str.trim());
 		if (!result) return null;
 		const [, minStr, secStr, msStr] = result;
 		const minutes = parseInt(minStr || '0', 10);
@@ -230,7 +230,7 @@ class TimeEditor extends preact.Component {
 		Saber.settings.suddenDeath = !!(document.getElementById('suddendeathall') as HTMLInputElement).checked;
 		this.close();
 	};
-	inputTime = (e: Event) => {
+	inputTime = () => {
 		this.duration = (document.getElementById('time') as HTMLInputElement).value;
 		this.settingDuration = (document.getElementById('timeall') as HTMLInputElement).value;
 	};
@@ -650,7 +650,7 @@ class Main extends preact.Component {
 		e?.preventDefault();
 		Saber.nextRound();
 	};
-	forceEnd = (e: MouseEvent | null) => {
+	forceEnd = () => {
 		Saber.currentDuration = 0;
 		Saber.update();
 	};
