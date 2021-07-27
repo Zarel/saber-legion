@@ -116,6 +116,23 @@ class SaberState {
 		this.startTime = 0;
 		this.update();
 	}
+	resetMatch() {
+		this.p1 = {
+			match: 0,
+			score: 0,
+			name: "Blue",
+			subtitle: '',
+			color: 'blue',
+		};
+		this.p2 = {
+			match: 0,
+			score: 0,
+			name: "Red",
+			subtitle: '',
+			color: 'red',
+		};
+		this.update();
+	}
 
 	toJSON() {
 		return {
@@ -362,6 +379,9 @@ class RoundEditor extends preact.Component {
 	reset = () => {
 		Saber.resetRound();
 	};
+	resetMatch = () => {
+		Saber.resetMatch();
+	};
 	autosize(textbox: HTMLTextAreaElement) {
 		textbox.style.height = `12px`;
 		const newHeight = Math.min(Math.max(textbox.scrollHeight - 2, 16), 600);
@@ -377,7 +397,10 @@ class RoundEditor extends preact.Component {
 		const scored = !!(Saber.p1.score || Saber.p2.score || Saber.simul);
 		const started = Saber.startTime || Saber.currentDuration !== Saber.settings.duration;
 		return <form onSubmit={this.close}>
-			<button class="button bigbutton" disabled={!scored && !started} onClick={this.reset}>Reset round</button><br />
+			<div>
+				<button class="button bigbutton" disabled={!scored && !started} onClick={this.reset}>Reset round</button><br />
+				<button class="button bigbutton" onClick={this.resetMatch}>Reset match</button><br />
+			</div>
 
 			<div>
 				<p><strong>Current match</strong></p>
